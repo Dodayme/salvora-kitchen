@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.env*
+!.env.example
+src/generated/prisma/
+*.log
+.local/
+
+# Local working files and generated media (not needed to run the app)
+.test-tmp/
+tmp/
+film/
+.Desain/
+.Desain.zip

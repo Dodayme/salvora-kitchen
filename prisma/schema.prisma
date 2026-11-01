@@ -1,0 +1,386 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  BUYER
+  ADMIN
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  PROCESSING
+  SHIPPED
+  READY_FOR_PICKUP
+  COMPLETED
+  EXPIRED
+  NEEDS_ATTENTION
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  UNCONFIRMED
+  SUCCESS
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  REVERSED
+}
+
+enum VoucherStatus {
+  AVAILABLE
+  RESERVED
+  USED
+}
+
+enum ReservationStatus {
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+enum PaymentEventSource {
+  SNAP_REQUEST
+  WEBHOOK
+  STATUS_API
+  SCHEDULER
+}
+
+enum VerificationStatus {
+  VERIFIED
+  REJECTED
+  UNCONFIRMED
+}
+
+enum HistoryActor {
+  SYSTEM
+  ADMIN
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String   @db.VarChar(100)
+  email           String   @unique @db.VarChar(254)
+  passwordHash    String
+  role            Role     @default(BUYER)
+  isFirstPurchase Boolean  @default(true)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+  sessions        Session[]
+  addresses       Address[]
+  cart            Cart?
+  discount        Discount?
+  orders          Order[]
+  quotes          CheckoutQuote[]
+  statusChanges   OrderStatusHistory[]
+  productPhotos   ProductPhoto[]
+}
+
+model Session {
+  tokenDigest String   @id @db.Char(64)
+  userId      String
+  expiresAt   DateTime @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model RateLimit {
+  key     String   @id @db.Char(64)
+  count   Int
+  resetAt DateTime @db.Timestamptz(3)
+
+  @@index([resetAt])
+}
+
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  recipientName String   @db.VarChar(100)
+  phone         String   @db.VarChar(32)
+  addressLine   String
+  city          String   @db.VarChar(100)
+  province      String   @db.VarChar(100)
+  postalCode    String?  @db.VarChar(16)
+  notes         String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique @db.VarChar(100)
+  isActive  Boolean   @default(true)
+  isDemo    Boolean   @default(false)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  products  Product[]
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  categoryId    String
+  name          String   @db.VarChar(150)
+  description   String
+  price         Int
+  physicalStock Int      @default(0)
+  reservedStock Int      @default(0)
+  imageUrl      String?
+  photoKey      String?
+  photoId       String?  @db.Uuid
+  isActive      Boolean  @default(true)
+  isDemo        Boolean  @default(false)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  photo         ProductPhoto? @relation(fields: [photoId], references: [id], onDelete: Restrict)
+
+  @@index([categoryId, isActive])
+  @@index([isActive, createdAt])
+  @@index([photoId])
+}
+
+model ProductPhoto {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  contentType String   @default("image/webp") @db.VarChar(32)
+  byteSize    Int
+  width       Int
+  height      Int
+  sha256      String   @db.Char(64)
+  createdById String
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  products    Product[]
+
+  @@index([createdById, createdAt])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(3)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+// Snapshot quote (no stock reservation). TTL and payload validation belong to BE-07.
+model CheckoutQuote {
+  id        String   @id @default(cuid())
+  userId    String
+  inputHash String   @db.Char(64)
+  snapshot  Json
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model Discount {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  type            String        @default("NEW_BUYER") @db.VarChar(32)
+  percentage      Int           @default(20)
+  maxDiscount     Int           @default(100000)
+  status          VoucherStatus @default(AVAILABLE)
+  reservedOrderId String?        @unique
+  usedOrderId     String?        @unique
+  usedAt          DateTime?     @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  reservedOrder   Order?        @relation("VoucherReservation", fields: [reservedOrderId, userId], references: [id, userId], onDelete: Restrict)
+  usedOrder       Order?        @relation("VoucherUsage", fields: [usedOrderId, userId], references: [id, userId], onDelete: Restrict)
+  orders          Order[]       @relation("OrderDiscount")
+
+  @@unique([id, userId])
+  @@unique([reservedOrderId, userId])
+  @@unique([usedOrderId, userId])
+  @@index([status, createdAt])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  number         String      @unique @db.VarChar(50)
+  userId         String
+  discountId     String?
+  idempotencyKey String      @db.VarChar(128)
+  inputHash      String      @db.Char(64)
+  recipientName  String      @db.VarChar(100)
+  phone          String      @db.VarChar(32)
+  addressLine    String
+  city           String      @db.VarChar(100)
+  province       String      @db.VarChar(100)
+  postalCode     String?     @db.VarChar(16)
+  addressNotes   String?
+  subtotal       Int
+  discount       Int         @default(0)
+  shippingFee    Int
+  total          Int
+  currency       String      @default("IDR") @db.Char(3)
+  shippingMode   String      @default("MANUAL_DELIVERY") @db.VarChar(32)
+  shippingLabel  String
+  status         OrderStatus @default(AWAITING_PAYMENT)
+  paymentDeadline DateTime   @db.Timestamptz(3)
+  attentionReason String?
+  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @db.Timestamptz(3)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  voucher        Discount?   @relation("OrderDiscount", fields: [discountId, userId], references: [id, userId], onDelete: Restrict)
+  reservedVoucher Discount?  @relation("VoucherReservation")
+  usedVoucher    Discount?   @relation("VoucherUsage")
+  items          OrderItem[]
+  payments       Payment[]
+  application    PaymentApplication?
+  history        OrderStatusHistory[]
+
+  @@unique([id, userId])
+  @@unique([userId, idempotencyKey])
+  @@unique([id, total, currency])
+  @@index([userId, createdAt, id])
+  @@index([status, paymentDeadline])
+  @@index([discountId, userId])
+  @@index([createdAt, id])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  productId    String
+  name         String   @db.VarChar(150)
+  unitPrice    Int
+  quantity     Int
+  lineSubtotal Int
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  reservation  StockReservation?
+  rating       Rating?
+
+  @@unique([orderId, productId])
+  @@index([productId])
+}
+
+// Product/quantity/order are derived from the immutable OrderItem, not duplicated here.
+model StockReservation {
+  orderItemId String            @id
+  status      ReservationStatus @default(RESERVED)
+  expiresAt   DateTime          @db.Timestamptz(3)
+  finalizedAt DateTime?         @db.Timestamptz(3)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  orderItem   OrderItem         @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([status, expiresAt])
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  orderId               String
+  providerOrderId       String        @unique @db.VarChar(50)
+  provider              String        @default("MIDTRANS") @db.VarChar(16)
+  midtransTransactionId String?        @unique
+  amount                Int
+  currency              String        @default("IDR") @db.Char(3)
+  status                PaymentStatus @default(CREATED)
+  providerStatus        String?
+  channel               String?
+  snapToken             String?
+  snapRedirectUrl       String?
+  expiresAt             DateTime      @db.Timestamptz(3)
+  transactionTime       DateTime?     @db.Timestamptz(3)
+  paidAt                DateTime?     @db.Timestamptz(3)
+  createdAt             DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime      @updatedAt @db.Timestamptz(3)
+  order                 Order         @relation(fields: [orderId, amount, currency], references: [id, total, currency], onDelete: Restrict)
+  events                PaymentEvent[]
+  application           PaymentApplication?
+
+  @@unique([id, orderId])
+  @@index([orderId, createdAt])
+  @@index([status, expiresAt])
+  @@index([createdAt, id])
+}
+
+// Order-scoped exactly-once marker; independent from number of successful attempts.
+model PaymentApplication {
+  orderId   String   @id
+  paymentId String   @unique
+  appliedAt DateTime @default(now()) @db.Timestamptz(3)
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment   Payment  @relation(fields: [paymentId, orderId], references: [id, orderId], onDelete: Restrict)
+
+  @@unique([paymentId, orderId])
+}
+
+model PaymentEvent {
+  id              String             @id @default(cuid())
+  paymentId       String
+  deduplicationKey String            @db.VarChar(128)
+  source          PaymentEventSource
+  providerStatus  String?
+  resultingStatus PaymentStatus?
+  verification    VerificationStatus
+  errorCode       String?            @db.VarChar(64)
+  createdAt       DateTime           @default(now()) @db.Timestamptz(3)
+  payment         Payment            @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, deduplicationKey])
+  @@index([paymentId, createdAt])
+}
+
+// Ownership/product are joined through OrderItem -> Order -> User, avoiding inconsistent copies.
+model Rating {
+  id          String   @id @default(cuid())
+  orderItemId String   @unique
+  rating      Int
+  comment     String
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt, id])
+}
+
+model OrderStatusHistory {
+  id          String       @id @default(cuid())
+  orderId     String
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  actor       HistoryActor
+  actorUserId String?
+  note        String?
+  changedAt   DateTime     @default(now()) @db.Timestamptz(3)
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  actorUser   User?        @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, changedAt])
+}

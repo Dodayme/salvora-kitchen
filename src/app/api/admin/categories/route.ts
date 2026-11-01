@@ -1,0 +1,5 @@
+import { catalog } from "@/lib/catalog/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const GET = catalog.adminCategories;
+export const POST = catalog.createCategory;
