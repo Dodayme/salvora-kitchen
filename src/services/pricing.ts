@@ -2,6 +2,7 @@ import type { Prisma } from "../generated/prisma/client";
 import { ApiError } from "../lib/api/errors";
 import { requireRole, type Principal } from "../lib/auth/access";
 import { newBuyerDiscount, payableTotal, productSubtotal } from "../lib/pricing/money";
+import { eventDiscount } from "../lib/promotions/model";
 import { firstPurchaseEligible } from "./vouchers";
 
 // Read inside the caller's consistent transaction. These are server inputs for
@@ -25,8 +26,17 @@ export async function readPricingInputs(tx: Prisma.TransactionClient, principal:
 // no default while delivery pricing is still an open decision for BE-07.
 export async function priceBuyerCart(tx: Prisma.TransactionClient, principal: Principal | null, shippingFee: number) {
   const { items, subtotal, eligibleVoucherId } = await readPricingInputs(tx, principal);
-  const discount = newBuyerDiscount(subtotal, eligibleVoucherId !== null);
+  const buyerDiscount = newBuyerDiscount(subtotal, eligibleVoucherId !== null);
+  const time = (await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS now`)[0].now;
+  const user = requireRole(principal, "BUYER");
+  const promotions = await tx.eventPromotion.findMany({ where: { isActive: true, startsAt: { lte: time }, endsAt: { gt: time }, OR: [{ recipientIds: { isEmpty: true } }, { recipientIds: { has: user.id } }] }, orderBy: { id: "asc" } });
+  let discount = buyerDiscount;
+  let eventPromotion: { id: string; name: string } | null = null;
+  for (const promotion of promotions) {
+    const amount = eventDiscount(subtotal, promotion.percentage, promotion.maxDiscount);
+    if (amount > discount) { discount = amount; eventPromotion = { id: promotion.id, name: promotion.name }; }
+  }
   const total = payableTotal(subtotal, discount, shippingFee);
   return { items, subtotal, discount, shippingFee, total, currency: "IDR" as const,
-    voucher: eligibleVoucherId ? { id: eligibleVoucherId, discount } : null };
+    eventPromotion, voucher: eligibleVoucherId && !eventPromotion ? { id: eligibleVoucherId, discount } : null };
 }

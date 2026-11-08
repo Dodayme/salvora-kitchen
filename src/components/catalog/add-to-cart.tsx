@@ -6,12 +6,14 @@ import { cartChanged } from "@/components/buyer/use-buyer-read";
 import { useSession, useAccountRequest } from "@/components/auth/session-provider";
 import { ActionButton } from "@/components/shared/action-button";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiClientError } from "@/lib/http/client";
 import { canPurchase, decodeCart, validQuantity, type Product } from "@/lib/catalog-client/model";
 
-export function AddToCart({ product, quantityControl = false, reload }: { product: Product; quantityControl?: boolean; reload: () => void }) {
+export function AddToCart({ product, quantityControl = false, chooseFirst = false, reload }: { product: Product; quantityControl?: boolean; chooseFirst?: boolean; reload: () => void }) {
+  const [open, setOpen] = useState(false);
   const { status, user, store } = useSession(), request = useAccountRequest();
   const [quantity, setQuantity] = useState("1"), [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ owner: string; message: string; uncertain?: boolean; conflict?: boolean; error?: boolean }>();
@@ -39,10 +41,12 @@ export function AddToCart({ product, quantityControl = false, reload }: { produc
       if (known?.retryAfterSeconds) { setDeadline(Date.now() + known.retryAfterSeconds * 1000); setCooldown(known.retryAfterSeconds); }
     } finally { lock.current = false; if (mounted.current) setPending(false); }
   }
-  return <div className="space-y-3">
-    {quantityControl && available && <div className="max-w-40 space-y-2"><Label htmlFor={`quantity-${product.id}`}>Jumlah</Label><Input id={`quantity-${product.id}`} inputMode="numeric" value={quantity} disabled={pending} aria-invalid={!valid} aria-describedby={!valid ? `quantity-error-${product.id}` : undefined} onChange={event => setQuantity(event.target.value)} />{!valid && <p id={`quantity-error-${product.id}`} className="text-sm text-destructive">Masukkan jumlah bulat 1–{product.availableStock}.</p>}</div>}
+  const content = <div className="space-y-3">
+    {quantityControl && available && <div className="max-w-40 space-y-2"><Label htmlFor={`quantity-${product.id}`}>Jumlah</Label><Input id={`quantity-${product.id}`} type="number" min={1} max={product.availableStock} step={1} autoFocus={chooseFirst} inputMode="numeric" value={quantity} disabled={pending} aria-invalid={!valid} aria-describedby={!valid ? `quantity-error-${product.id}` : undefined} onChange={event => setQuantity(event.target.value)} />{!valid && <p id={`quantity-error-${product.id}`} className="text-sm text-destructive">Masukkan jumlah bulat 1–{product.availableStock}.</p>}</div>}
     {!available ? <Button disabled className="w-full">Stok habis</Button> : status === "anonymous" ? <Button asChild className="w-full"><Link href={`/login?returnTo=${encodeURIComponent(`/menu/${product.id}`)}`}>Masuk untuk menambahkan</Link></Button> : status === "error" ? <Button variant="outline" className="w-full" onClick={() => void store.refresh()}>Periksa sesi untuk membeli</Button> : user?.role === "ADMIN" ? <><Button disabled className="w-full">Khusus akun pembeli</Button><p className="text-xs text-muted-foreground">Admin tidak dapat berbelanja dengan akun ini.</p></> : <ActionButton pending={pending} disabled={status !== "authenticated" || !valid || !!(current?.uncertain || current?.conflict) || cooldown > 0} className="w-full" onClick={() => void perform()}><ShoppingBag aria-hidden="true" />{status === "checking" ? "Memeriksa sesi…" : "Tambah ke keranjang"}</ActionButton>}
     {cooldown > 0 && <p role="status" className="text-sm text-muted-foreground">Tunggu {cooldown} detik sebelum mencoba lagi.</p>}
     {current && <div role={current.error ? "alert" : "status"} className={`space-y-2 text-sm leading-relaxed ${current.error ? "text-destructive" : "text-success"}`}><p>{current.message}</p>{current.uncertain && <Button variant="outline" disabled={pending || cooldown > 0} onClick={() => void perform(true)}>Periksa jumlah keranjang</Button>}{current.conflict && <Button variant="outline" onClick={reload}>Muat ulang produk</Button>}</div>}
   </div>;
+  if (!chooseFirst) return content;
+  return <><Button className="w-full" disabled={!available} onClick={() => setOpen(true)}>{available ? "Beli" : "Stok habis"}</Button><Dialog open={open} onOpenChange={value => { if (!pending) setOpen(value); }}><DialogContent><DialogHeader><DialogTitle>{product.name}</DialogTitle><DialogDescription>Tentukan jumlah yang ingin dibeli, lalu tambahkan ke keranjang.</DialogDescription></DialogHeader>{content}</DialogContent></Dialog></>;
 }

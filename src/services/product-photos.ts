@@ -23,7 +23,7 @@ export function createPhotoService(db: PrismaClient, storage: PhotoStorage) {
     },
     async read(id: string, principal: Principal | null = null) {
       z.uuid().parse(id);
-      const photo = await db.productPhoto.findFirst({ where: { id, ...(principal?.role === "ADMIN" ? {} : { products: { some: { isActive: true, category: { isActive: true } } } }) }, select: { key: true } });
+      const photo = await db.productPhoto.findFirst({ where: { id, ...(principal?.role === "ADMIN" ? {} : { OR: [{ products: { some: { isActive: true, category: { isActive: true } } } }, { promotions: { some: { isActive: true, startsAt: { lte: new Date() }, endsAt: { gt: new Date() }, OR: [{ recipientIds: { isEmpty: true } }, ...(principal?.role === "BUYER" ? [{ recipientIds: { has: principal.id } }] : [])] } } }] }) }, select: { key: true } });
       if (!photo) throw new ApiError(404, "NOT_FOUND", "Foto tidak ditemukan.");
       try { return await storage.read(photo.key); }
       catch { throw new ApiError(404, "NOT_FOUND", "Foto tidak ditemukan."); }

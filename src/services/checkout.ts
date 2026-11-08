@@ -83,6 +83,7 @@ export function createCheckoutService(db: PrismaClient) {
           if (categoryIds.length) await tx.$queryRaw(Prisma.sql`SELECT id FROM "Category" WHERE id IN (${Prisma.join(categoryIds)}) ORDER BY id FOR SHARE`);
         }
         await tx.$queryRaw`SELECT id FROM "Discount" WHERE "userId"=${user.id} FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM "EventPromotion" WHERE "isActive" = true ORDER BY id FOR SHARE`;
         const value = await snapshot(tx, user, stored.addressId, pickup ? stored.address : undefined);
         if (digest(value) !== quote.inputHash) throw changed();
         const time = await now(tx);
@@ -94,9 +95,9 @@ export function createCheckoutService(db: PrismaClient) {
           id, number: `SK-${time.toISOString().slice(0, 10).replaceAll("-", "")}-${id}`, userId: user.id, idempotencyKey, inputHash,
           ...address, addressNotes: notes,
           subtotal: value.subtotal, discount: value.discount, shippingFee: value.shippingFee, total: value.total,
-          discountId: value.voucher?.id ?? null, shippingMode: value.shipping.mode, shippingLabel: value.shipping.label, createdAt: time, paymentDeadline,
+          discountId: value.voucher?.id ?? null, eventPromotionId: value.eventPromotion?.id ?? null, shippingMode: value.shipping.mode, shippingLabel: value.shipping.label, createdAt: time, paymentDeadline,
           items: { create: value.items.map(({ productId, name, unitPrice, quantity, lineSubtotal }) => ({ productId, name, unitPrice, quantity, lineSubtotal, reservation: { create: { expiresAt: paymentDeadline, createdAt: time } } })) },
-          history: { create: { toStatus: "AWAITING_PAYMENT", actor: "SYSTEM", changedAt: time, note: "Pesanan dibuat; menunggu pembayaran." } },
+          history: { create: { toStatus: "AWAITING_PAYMENT", actor: "SYSTEM", changedAt: time, note: value.eventPromotion ? `Pesanan dibuat dengan promosi ${value.eventPromotion.name}; menunggu pembayaran.` : "Pesanan dibuat; menunggu pembayaran." } },
         }, select: { id: true } });
         for (const item of [...value.items].sort((a, b) => a.productId.localeCompare(b.productId))) {
           const updated = await tx.$queryRaw<Array<{ id: string }>>`UPDATE "Product" SET "reservedStock"="reservedStock"+${item.quantity},"updatedAt"=GREATEST(date_trunc('milliseconds',clock_timestamp()),"updatedAt"+interval '1 millisecond') WHERE id=${item.productId} AND "physicalStock"-"reservedStock">=${item.quantity} RETURNING id`;

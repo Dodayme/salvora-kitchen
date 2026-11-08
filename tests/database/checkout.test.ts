@@ -8,6 +8,7 @@ import { checkoutHandlers } from "../../src/lib/checkout/http";
 import type { Principal } from "../../src/lib/auth/access";
 
 const db = createDatabaseClient(), checkout = createCheckoutService(db), buyer = createBuyerService(db);
+const promotionIds: string[] = [];
 const users: Principal[] = [], categories: string[] = [], products: string[] = [];
 afterAll(async () => {
   const userIds = users.map(u => u.id), where = { userId: { in: userIds } };
@@ -16,6 +17,7 @@ afterAll(async () => {
   await db.orderStatusHistory.deleteMany({ where: { order: where } });
   await db.orderItem.deleteMany({ where: { order: where } });
   await db.order.deleteMany({ where });
+  await db.eventPromotion.deleteMany({ where: { id: { in: promotionIds } } });
   await db.discount.deleteMany({ where });
   await db.user.deleteMany({ where: { id: { in: userIds } } });
   await db.product.deleteMany({ where: { id: { in: products } } });
@@ -178,4 +180,21 @@ describe("Checkout ambil sendiri PostgreSQL", () => {
     expect(result.data).toMatchObject({ shipping: { mode: "PICKUP" }, shippingFee: 0, total: 10003, status: "AWAITING_PAYMENT" });
     expect((await checkout.order(f.u, { quoteId: q.quoteId }, key)).data.id).toBe(result.data.id);
   });
+});
+
+it("event discount persists on repeated orders and expired quote is rejected", async () => {
+ const f = await fixture();
+ const promo = await db.eventPromotion.create({ data: { name: "Checkout event", percentage: 30, maxDiscount: 50000, recipientIds: [f.u.id], startsAt: new Date(Date.now()-60000), endsAt: new Date(Date.now()+60000) } }); promotionIds.push(promo.id);
+ for (let i=0;i<2;i++) {
+   if (i) await buyer.addItem(f.u, { productId: f.p.id, quantity: 1 });
+   const quote = await checkout.quote(f.u, { addressId: f.address.id });
+   expect(quote.discount).toBe(3000);
+   const result = await checkout.order(f.u, { quoteId: quote.quoteId }, randomUUID());
+   expect(await db.order.findUnique({ where: { id: result.data.id } })).toMatchObject({ eventPromotionId: promo.id, discountId: null, discount: 3000 });
+ }
+ expect(await db.discount.findUnique({ where: { userId: f.u.id } })).toMatchObject({ status: "AVAILABLE" });
+ await buyer.addItem(f.u, { productId: f.p.id, quantity: 1 });
+ const quote = await checkout.quote(f.u, { addressId: f.address.id });
+ await db.eventPromotion.update({ where: { id: promo.id }, data: { isActive: false } });
+ await expect(checkout.order(f.u, { quoteId: quote.quoteId }, randomUUID())).rejects.toMatchObject({ code: "CHECKOUT_CHANGED" });
 });

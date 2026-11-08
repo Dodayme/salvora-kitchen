@@ -1,0 +1,1 @@
+ALTER TABLE "EventPromotion" ADD COLUMN "photoId" UUID REFERENCES "ProductPhoto"("id") ON DELETE RESTRICT;

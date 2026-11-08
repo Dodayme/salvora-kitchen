@@ -1,0 +1,191 @@
+[
+  {
+    "id": "salvora-bolen-coklat-keju",
+    "name": "Bolen Coklat Keju",
+    "category": "Pastry",
+    "price": 4000,
+    "imageUrl": "/images/products/bolen-coklat-keju.jpg"
+  },
+  {
+    "id": "salvora-bolen-coklat",
+    "name": "Bolen Coklat",
+    "category": "Pastry",
+    "price": 4000,
+    "imageUrl": "/images/products/bolen-coklat.png"
+  },
+  {
+    "id": "salvora-cookie-monster-blue-cookie-delight",
+    "name": "Cookie Monster Blue Cookie Delight",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/cookie-monster-blue-cookie-delight.png"
+  },
+  {
+    "id": "salvora-cookies-biscof",
+    "name": "Cookies Biscof",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/cookies-biscof.png"
+  },
+  {
+    "id": "salvora-cookies-double-choco",
+    "name": "cookies double choco",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/cookies-double-choco.png"
+  },
+  {
+    "id": "salvora-cookies-matcha",
+    "name": "Cookies Matcha",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/cookies-matcha.png"
+  },
+  {
+    "id": "salvora-cookies-original",
+    "name": "Cookies Original",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/cookies-original.png"
+  },
+  {
+    "id": "salvora-cookies-red-velvet",
+    "name": "Cookies red Velvet",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/cookies-red-velvet.png"
+  },
+  {
+    "id": "salvora-croisant-almond",
+    "name": "Croisant Almond",
+    "category": "Pastry",
+    "price": 14000,
+    "imageUrl": "/images/products/croisant-almond.png"
+  },
+  {
+    "id": "salvora-croisant-biscof",
+    "name": "Croisant Biscof",
+    "category": "Pastry",
+    "price": 14000,
+    "imageUrl": "/images/products/croisant-biscof.png"
+  },
+  {
+    "id": "salvora-croisant-original",
+    "name": "Croisant Original",
+    "category": "Pastry",
+    "price": 12000,
+    "imageUrl": "/images/products/croisant-original.png"
+  },
+  {
+    "id": "salvora-cromboloni-coklat",
+    "name": "Cromboloni Coklat",
+    "category": "Pastry",
+    "price": 0,
+    "imageUrl": "/images/products/cromboloni-coklat.png"
+  },
+  {
+    "id": "salvora-cromboloni-strawbery",
+    "name": "Cromboloni Strawbery",
+    "category": "Pastry",
+    "price": 0,
+    "imageUrl": "/images/products/cromboloni-strawbery.png"
+  },
+  {
+    "id": "salvora-gooey-nutella-hazelnut-cookies",
+    "name": "Gooey Nutella Hazelnut Cookies",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/gooey-nutella-hazelnut-cookies.png"
+  },
+  {
+    "id": "salvora-pizza-roll",
+    "name": "Pizza Roll",
+    "category": "Pastry",
+    "price": 10000,
+    "imageUrl": "/images/products/pizza-roll.png"
+  },
+  {
+    "id": "salvora-risol-ayam-pedas",
+    "name": "Risol Ayam Pedas",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-ayam-pedas.png"
+  },
+  {
+    "id": "salvora-risol-bery-chese",
+    "name": "Risol Bery Chese",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-bery-chese.jpg"
+  },
+  {
+    "id": "salvora-risol-bolognes",
+    "name": "Risol Bolognes",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-bolognes.jpg"
+  },
+  {
+    "id": "salvora-risol-coconut-peanut",
+    "name": "Risol Coconut Peanut",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-coconut-peanut.png"
+  },
+  {
+    "id": "salvora-risol-coklat",
+    "name": "Risol Coklat",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-coklat.png"
+  },
+  {
+    "id": "salvora-risol-jasuke",
+    "name": "Risol Jasuke",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-jasuke.jpg"
+  },
+  {
+    "id": "salvora-risol-matcha",
+    "name": "Risol Matcha",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-matcha.png"
+  },
+  {
+    "id": "salvora-risol-mayo",
+    "name": "Risol Mayo",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-mayo.png"
+  },
+  {
+    "id": "salvora-risol-ube-chese",
+    "name": "Risol Ube Chese",
+    "category": "Risol",
+    "price": 10000,
+    "imageUrl": "/images/products/risol-ube-chese.png"
+  },
+  {
+    "id": "salvora-s-mores-cookies",
+    "name": "s'mores cookies",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/s-mores-cookies.png"
+  },
+  {
+    "id": "salvora-savory-puff-pastry",
+    "name": "Savory Puff Pastry",
+    "category": "Pastry",
+    "price": 10000,
+    "imageUrl": "/images/products/savory-puff-pastry.png"
+  },
+  {
+    "id": "salvora-taro-white-chocolate-chunk-cookies",
+    "name": "Taro White Chocolate Chunk Cookies",
+    "category": "Cookies",
+    "price": 3000,
+    "imageUrl": "/images/products/taro-white-chocolate-chunk-cookies.png"
+  }
+]

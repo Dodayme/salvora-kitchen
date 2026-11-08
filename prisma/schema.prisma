@@ -166,6 +166,7 @@ model ProductPhoto {
   createdById String
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  promotions EventPromotion[]
   products    Product[]
 
   @@index([createdById, createdAt])
@@ -208,6 +209,20 @@ model CheckoutQuote {
   @@index([expiresAt])
 }
 
+model EventPromotion {
+  photoId String? @db.Uuid
+  photo ProductPhoto? @relation(fields: [photoId], references: [id], onDelete: Restrict)
+  id String @id @default(uuid())
+  name String @db.VarChar(100)
+  percentage Int
+  maxDiscount Int
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt DateTime @db.Timestamptz(3)
+  recipientIds String[]
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
 model Discount {
   id              String        @id @default(cuid())
   userId          String        @unique
@@ -235,6 +250,7 @@ model Order {
   number         String      @unique @db.VarChar(50)
   userId         String
   discountId     String?
+  eventPromotionId String?
   idempotencyKey String      @db.VarChar(128)
   inputHash      String      @db.Char(64)
   recipientName  String      @db.VarChar(100)

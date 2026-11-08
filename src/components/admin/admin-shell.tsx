@@ -13,6 +13,7 @@ const items = [
   { label: "Kategori", href: "/admin/kategori", icon: Tags, available: true },
   { label: "Pesanan", href: "/admin/pesanan", icon: ShoppingBag, available: true },
   { label: "Pembayaran", href: "/admin/pembayaran", icon: CreditCard, available: true },
+  { label: "Promosi Event", href: "/admin/promosi", icon: Ticket, available: true },
   { label: "Voucher Pembeli Baru", href: "/admin/voucher", icon: Ticket, available: true },
   { label: "Akun Saya", href: "/admin/akun", icon: UserRound, available: true },
 ];
